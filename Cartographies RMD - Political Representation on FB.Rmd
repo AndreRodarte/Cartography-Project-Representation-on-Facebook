@@ -6,13 +6,6 @@ output: html_document
 
 # **Political Representation and Propaganda on Facebook: 2022 Brazilian Elections**
 
-Nancy Fraser once described political representation as furnishing the stage where struggles for recognition and distribution occur. This stage, however, can be quite small. Brazil's democratic institutions have been historically criticized for failing to give voice to a range of social actors. The present study seeks to investigate whether Facebook reinforces, or subverts, this diagnosis.
-
-Based on data about the 2022 election for Congress, I initially describe what kind of candidate did not campaign on that platform. The analyses indicate that most candidates who were absent from Facebook were "outsiders": candidates of color with lower levels of education, whose campaigns used significantly less party resources, and previously had no elected or state jobs.
-
-My analysis turns next to candidates who did have an active account on Facebook. In exploring what campaigns rose to prominence on that platform, I show that already belonging to Brazil's political class and expenditure with Facebook promotion services predict greater likelihood of engagement on their posts. This finding reinforces, rather than subverts, the diagnosis of elite closure, as the unequal distribution of campaign resources help sustain the country's political class.
-
-In addition to investigating inequalities in the "supply side," I also examine whether these candidates' campaigns were equitably distributed across their constituencies. Although Brazilian politicians claim to speak on behalf of vast regions of the country, my analysis demonstrate that certain municipalities are targeted much more than others, which may give rise to regions of representative scarcity in Brazil.
 
 ```{r setup, echo=T, results='hide', message=FALSE, warning=FALSE}
 options(scipen = 999)  #R uses scientific notations as a default. 
@@ -109,7 +102,7 @@ dfExpensesTotal <- readr::read_csv("dfCampaignExpenses.csv")%>%
   dfExpenses <- dfExpensesTotal %>%
     group_by(full_name) %>%
     summarise(Expenses = sum(VR_DESPESA_CONTRATADA))
-  #Adding expenses with online content 
+  #Adding expenses with online content promotion
   dfExpenses_FB <- dfExpensesTotal %>% 
           filter(str_detect(DS_ORIGEM_DESPESA, "Despesa com Impulsionamento de Conteúdos", negate = F)) %>% 
           group_by(full_name) %>%
@@ -134,13 +127,9 @@ CrowdTangle_Engagement <- CrowdTangle %>%
             Total_Likes = sum(likes),
             Total_Angy = sum(likes_angry))
 
-
-#Had to combine manually this analysis with the previous TSE dataset.
-write.csv2(CrowdTangle_Engagement, file = "CrowdTangle_Engagement.csv") 
 #The new dataset is: 
 dfTSE <- read_delim("df_TSE.csv", delim = ";", 
     escape_double = FALSE, trim_ws = TRUE)
-
 df_combined <- left_join(dfTSE, CrowdTangle_Engagement, by="page_name")
 
 
@@ -274,11 +263,6 @@ Specifically, we have:
 
 : *Table 1: Absent from Facebook*
 
-After describing the composition of this group of candidates, I explored what resources they had to campaign. To verify what profile received less support from their political parties, I computed the mean value of campaign expenses per group. Consistent with the description above, this analysis revealed that candidates of color with lower levels of education ran on cheaper campaigns compared to other candidates. This finding suggests that campaign funding may be a determinant factor in the participation of candidates from minority backgrounds on Facebook.
-
-It is important to note that there were fewer female candidates on Facebook, and compared to their male counterparts, they had less party resources --specifically, women without a college degree ranked the lowest in campaign expenses. Women of color already constituted the group with lowest declared wealth in this sample, so they could not resort to personal funding as much as other candidates.
-
-Next, I was interested in identifying the most frequent previous occupation of this group. This analysis reveals that most candidates who were absent from Facebook came from careers other than politics.
 
 ```{r}
 interactions_occupation <- df_nas %>%
@@ -290,17 +274,8 @@ interactions_occupation %>%
   arrange(desc(Composition),by_group = TRUE)
 ```
 
-### **Conclusion**
-
-The analyses above indicate that most candidates who were absent from Facebook were "outsiders", that is, candidates who previously had no elected or state job. They were predominantly candidates of color with lower levels of education, whose campaigns used significantly less party resources. We can say that a typical case of a candidate who was not on Facebook was that of a non-white businessman who never graduated from college. This candidate's campaign expenses was less than half the average of the entire sample.
-
-A significant proportion of female candidates did not have an active Facebook account (256 of a total of 343). This group ran their campaigns on lower budget and they could not resort to the same level of personal wealth as their male counterparts. Among those without a Facebook account, it is noteworthy that a woman of color without a college degree spent on average only fifty eight thousand on her campaign. For the sake of comparison, a white male candidate with higher education who was on Facebook spent eleven times more.
 
 ## **Is there a relationship between engagement on Facebook and candidates' profiles?**
-
-My literature review suggested that candidates would not compete on equal footing over their constituencies of interest. Traditional politicians ---predominantly white, upper class, men--- have historically received greater attention in the media. So I hypothesized that social media platforms would extend their visibility in ways that still reproduce inequalities in access to means of communication, conforming to what Strandberg (2013) described as normalization thesis.
-
-To verify that, I conducted the following analyzes: first, I counted the number of candidates in each demographic group and combined the number of interactions each group received during this election.
 
 ```{r}
 df_clean <- df %>% 
@@ -363,8 +338,6 @@ df_clean$PoliticalClass <- case_when(
 
 # Create the interaction term by combining the categorical variables
 df_interaction <- df_clean %>% 
-  #mutate(interactionRG = interaction(race, gender, sep = " ")) %>% 
-  #mutate(interactionGE = interaction(gender, education, sep = " ")) %>% 
   mutate(interaction = interaction(gender, race, education, sep = " "))
 
 intersectional_analysis <- df_interaction %>%
@@ -386,13 +359,6 @@ occupation_interactions %>%
   arrange(desc(Mean),by_group = TRUE)
 ```
 
-In absolute numbers, most interactions that occurred on Facebook were unequally distributed: they were directed to white, male candidates with higher levels of education. Considering the low number of female candidates on this platform (86, only ten of which were women of color without a college degree), it is not surprising that we found this distribution in absolute numbers. Yet, with the exception of education, we found a similar ranking when calculating the average engagement per groups.
-
-This analysis is limited insofar as the sample composition is highly skewed. Nevertheless, I am reporting these results because, even if these findings are questionable on a statistical level, they are revealing on a political one.
-
-If we consider the intersection of our variables of interest, the groups that received the most interactions online were composed of man of color without college degree (even though their campaigns ran on relatively low budget), followed by white man of all levels of education.
-
-Parliamentarians seeking re-election and former members of municipal councils ranked high in this analysis, which corroborates with previous studies suggesting that Brazilian elections for Congress favor incumbents and those already belonging to the country's political class. (The other previous occupations that figured on top were cleaner, actor, and photographer, but there were only three or less candidates from each of these occupations.)
 
 ### Voters interacted the most with candidates of what political party?
 
@@ -406,29 +372,6 @@ interactions_party %>%
 ```
 
 ### Do these variables explain what candidates received more interactions online?
-
-My next step was to examine whether gender, race, education helped explain what candidates received more interactions online. To that end, I included information about their declared assets (wealth) and about their campaign budget, specifically: the amount of money they received to campaign, the amount of money they declared to have used, and the amount of money they declared to have spent with Facebook services.
-
-```{r}
-CorrelationFundsEngagement <- cor.test(df_clean$ExpensesAds, df_clean$Relative_Engagement, 
-                    method = "pearson")
-
-CorrelationFundsEngagement
-```
-
-```{r}
-BV_Engagement <- ggplot()+
-  geom_jitter(data=df_clean, aes(x = ExpensesAds, y = Relative_Engagement, color = party_abbrev, text=name_ballot)) + 
-  labs(title = "Relationship between online campaign expenses and engagement", x = "Expenses", y = "Engagement online")+
-  guides(col = guide_legend(title = "", ncol = 1))
-  
-InteractiveEngagement <- ggplotly(BV_Engagement)
-
-InteractiveEngagement
-```
-
-A Pearson's correlation test suggested a weak positive relation between campaign expenses and engagement online, but this correlation was not significant. Considering how skewed the sample is, and the number of categorical variables in it, I conducted a negative binominal regression to further investigate the relationship between those variables.
-
 #### **Z-Transformed Regression Analysis**
 
 Over-dispersal of count data can be verified in our dependent variable if the variance exceeds the means. This is the case with "Relative Engagement".
@@ -438,7 +381,6 @@ mean(df_clean$Relative_Engagement)
 var(df_clean$Relative_Engagement)
 ```
 
-Because my dependent variable, "relative engagement," is a count with an over-dispersed distribution, the most appropriate statistical test is a negative binomial regression.
 
 ```{r}
 #Transforming the data
@@ -450,17 +392,6 @@ df_ztransformed <- df_ztransformed %>%
 df_ztransformed$PoliticalClass <- case_when(
     df_ztransformed$PoliticalClass %in% c('Deputy', 'Member of City Council') ~ '1', TRUE ~ '0')
 df_ztransformed$PoliticalClass <- as.factor(df_ztransformed$PoliticalClass)
-
-#Adding number of ads
-df_ztransformed_preliminary <- df_ads_combined[, c("nr_ads", "page_name")]
-
-     df_ztransformed_preliminary$page_name = stri_trans_general(str =                     df_ztransformed_preliminary$page_name, id = "Latin-ASCII")
-     df_ztransformed_preliminary$page_name <-                                             tolower(df_ztransformed_preliminary$page_name)
-
-     df_ztransformed$page_name = stri_trans_general(str = df_ztransformed$page_name,      id = "Latin-ASCII")
-     df_ztransformed$page_name <- tolower(df_ztransformed$page_name)
-
-df_ztransformed <- merge(df_ztransformed, df_ztransformed_preliminary, by = "page_name")
 ```
 
 ```{r}
@@ -469,7 +400,7 @@ df_ztransformed <- merge(df_ztransformed, df_ztransformed_preliminary, by = "pag
 df_ztransformed$nr_ads[is.na(df_ztransformed$nr_ads)] <- 0
 df_ztransformed$ExpensesAds[is.na(df_ztransformed$ExpensesAds)] <- 0
 
-#Wealth | In this case, I want to make sure that the imputation will maintain a similar mean, sd, median and distribution. 
+#Wealth | I want to make sure that the imputation will maintain a similar mean, sd, median and distribution. 
 mean(df_ztransformed$Declared_Wealth, na.rm = T)
 sd(df_ztransformed$Declared_Wealth, na.rm = T)
 median(df_ztransformed$Declared_Wealth, na.rm = T)
@@ -479,7 +410,6 @@ median(df_ztransformed$Declared_Wealth, na.rm = T)
 #https://appsilon.com/imputation-in-r/
 #install.packages("mice")
 library(mice)
-
 df_ztransformed_preliminary <- df_ztransformed %>%
   select(gender, race, education, occupation, PoliticalClass, received_funds, Declared_Wealth)
 md.pattern(df_ztransformed_preliminary)
@@ -515,7 +445,6 @@ df_ztransformed <-cbind(df_ztransformed, df_ztransformed_imputed)
 ```
 
 ```{r}
-#Expenses | I want to make sure that the imputation will maintain a similar mean, sd, median and distribution. 
 mean(df_ztransformed$Expenses, na.rm = T)
 sd(df_ztransformed$Expenses, na.rm = T)
 median(df_ztransformed$Expenses, na.rm = T)
@@ -571,14 +500,14 @@ df_ztransformed$Declared_Wealth_Z <- scale(df_ztransformed$Wealth_cart)
 df_ztransformed$Relative_Engagement <- round(df_ztransformed$Relative_Engagement)
 ```
 
-#####Negative binomial regression model #####First iteration
+####First iteration
 
 ```{r}
 # Controling for demographic variables
 Model_Z1 <- glm.nb(Relative_Engagement ~ 
                       gender + race + education + Declared_Wealth_Z, 
                  data = df_ztransformed,
-                 maxit = 1000) # I increased the maximum number of iterations for the optimization algorithm by setting the maxit parameter in the glm.nb function.
+                 maxit = 1000)
 ```
 
 ```{r}
@@ -591,12 +520,11 @@ print(vif_results_Z1)
 ```{r}
 # Print the summary of the model
 summary(Model_Z1)
-#To export the results, use tidy and then create a data frame 
 #tidymodel <- tidy(Model_Z1)
 #write.csv2(tidymodel, file = "tidymodel.csv", row.names=FALSE)
 ```
 
-#####Second iteration
+####Second iteration
 
 ```{r}
 # Negative binomial regression model
@@ -605,7 +533,7 @@ Model_Z2 <- glm.nb(Relative_Engagement ~
                     + PoliticalClass + ReceivedFunds_Z + 
                     + ExpensesAds_Z + Expenses_Z, 
                  data = df_ztransformed,
-                 maxit = 1000) # I increased the maximum number of iterations for the optimization algorithm by setting the maxit parameter in the glm.nb function.
+                 maxit = 1000) 
 ```
 
 ```{r}
@@ -618,7 +546,6 @@ print(vif_results_Z2)
 ```{r}
 # Print the summary of the model
 summary(Model_Z2)
-#To export the results, use tidy and then create a data frame 
 #tidymodel2 <- tidy(Model_Z2)
 #write.csv2(tidymodel2, file = "tidymodel2.csv", row.names=FALSE)
 ```
@@ -626,17 +553,6 @@ summary(Model_Z2)
 ```{r}
 nas_regression <- colSums(is.na(df_ztransformed))
   print(nas_regression)
-#Note that 35 candidates did not provide information about their campaign expenses.
-```
-
-```{r}
-#Gina suggested extracting coefficient estimates for the highly significant results
-#Formula to calculate the IRR for "Expenses":
-#IRR = exp(coefficient estimate)
-IRR_gender = exp(0.64347)
-IRR_ExpensesAds = exp(0.74240)
-IRR_ReceivedFunds = exp(0.37015)
-IRR_PoliticalClass = exp(1.30468)
 ```
 
 ### **Residual diagnosis for the negative binomial test**
@@ -656,28 +572,18 @@ plot(ResidualsOutput)
 **Summary:** results indicate that the dispersion of the residuals is not significantly deviating from what the model assumes, and the outlier test also had non significant results. However, they indicate that there are significant deviations in terms of the overall distribution (KS test). Additionally, quantile deviations suggest that the model might not be accurately capturing certain patterns in the data at specific points along the distribution.
 
 ### Conclusion:
-
-**Reporting results from model 1 \|** [TO BE REWRITTEN]
-
-The negative binomial regression showed that already belonging to Brazil's political class (β=1.50, IRR = ≈ 1.16, p \<0.01), campaign expenses (β=1.10, IRR = ≈ 1.00, p \<0.001) and, more specifically, expenses with Facebook services (β=8.98, IRR = ≈ 1.00, p \<0.001) had a significant relationship with online engagement.
-
 Based on this statistical test, we can conclude that online engagement proved to have a strong relationship with already belonging to Brazil's political class, and an even more significant relationship with campaign and Facebook expenses. These results indicate that Facebook does not level the playing field for candidates, as being an incumbent and having enough economic resources are determinant factors for a candidacy's visibility on that platform.
 
 # [RQ2] Distribution
 
 ***What are the constituencies (geographically defined) parliamentarians reached out to the most? Conversely, what constituencies were left aside in this election?***
 
-Brazilian parliamentarians often claim that their elections give them legitimacy to speak on behalf of the people. This legitimacy discourse is premised on the notion that parliamentarians campaign across their states, going so far as to reach their most secluded regions.
-
-In order to test that, I investigated all candidates' political communication in search of references to the municipalities they campaigned for. I asked whether there were constituencies which received much less attention during this electoral period, thus being left aside in these campaigners' political communication.
-
-My first step was to count the number of times any given municipality in the state of Minas Gerais was mentioned in the posts collected from CrowdTangle.
-
 ```{r, echo=T, results='hide', message=FALSE, warning=FALSE}
 # All municipalities in the state of Minas Gerais
 muni <- read_municipality(code_muni= "MG", 
                           year=2020)
 
+################################
 ################################
 ####Transforming Latin/Portuguese characters
 ## CrowdTangle
@@ -691,6 +597,7 @@ muni_clean$name_muni = stri_trans_general(str = muni_clean$name_muni, id = "Lati
 muni_clean$name_muni <- tolower(muni_clean$name_muni)
 
 ################################
+################################
 #Tokenization and identification
 #First, we need to check whether each element in the body variable contains any of the municipality names.
 posts_with_muni <- CrowdTangle_Clean %>% 
@@ -698,38 +605,37 @@ posts_with_muni <- CrowdTangle_Clean %>%
           str_detect(body, paste(muni_clean$name_muni, collapse = "|"), negate = F)
           )   #The paste() function concatenates the names into a single string, with the collapse argument set to | to create a regular expression pattern that matches any of the names. 
               #The str_detect() function returns a logical vector indicating whether each element in body matches the pattern. The negate = F argument ensures that the matches are not negated (i.e., it returns TRUE for matching elements).
-
 posts_with_muni_clean <- posts_with_muni
 posts_with_muni_clean$body = stri_trans_general(str = posts_with_muni_clean$body, id = "Latin-ASCII")   
 posts_with_muni_clean$body <- tolower(posts_with_muni_clean$body)
 
 ```
 
-**Result:** this procedure identified 29,536 posts that mentions municipalities from Minas Gerais.
 
 ```{r, results='hide', message=FALSE, warning=FALSE}
-#Now, I will identify the occurences in the corpus (both across the dataset and per candidate). To that end, the first step will be to extract all occurences of a pattern from a string.
+#Identify the occurences in the corpus (both across the dataset and per candidate). 
 muni2 <- str_extract_all(
   CrowdTangle_Clean$body, 
-  paste(muni_clean$name_muni, collapse = "|"), #Paste() function concatenates all elements from the muni_clean$name_muni vector into a single string. The collapse argument is set to | to create a regular expression pattern that matches any of the names. 
+  paste(muni_clean$name_muni, collapse = "|"),
   simplify = FALSE)
 
 muni_list <- muni2 %>% 
-  unlist() %>%  #unlist produces a vector which contains all the atomic components which occur in a column. 
+  unlist() %>%  
   as.data.frame()
-  colnames(muni_list) <- "name_muni"  #pulling out the names of the columns                                              (changing . for something meaningful)
+  colnames(muni_list) <- "name_muni"  
 muni_mentioned <- muni_list %>%  
   group_by(name_muni) %>% 
   count()
 
 #Adding the number of mentions to the datalist 
-muni_clean <- as.data.frame(muni_clean) #because R considered it a "large list", not a dataframe.
+muni_clean <- as.data.frame(muni_clean) 
 muni3 <- left_join(muni_clean, muni_mentioned, by = "name_muni", copy = FALSE, keep = FALSE)
 
 muni3$freq <- muni3$freq %>% replace_na(0)
 
 ####################################################
-########  REPLACE AMBIGUOUS NAMES
+####################################################
+########  REPLACE AMBIGUOUS NAMES (SEE ADITIONAL FOLDER) 
 muni3 <- muni3 %>%
   mutate(n = ifelse(name_muni == "bandeira", 28, n))  %>% 
   mutate(n = ifelse(name_muni == "conquista", 12, n)) %>% 
@@ -916,7 +822,7 @@ omnibus_geo
 ```
 
 ```{r}
-# Check for multicollinearity using vif()
+# Check for multicollinearity 
 vif_geo <- vif(Model_Geo)
 print(vif_geo)
 ```
@@ -948,7 +854,3 @@ InteractiveMap <- ggplotly(Map) %>%
 
 InteractiveMap
 ```
-
-**Summary of findings:** There were 29,536 posts that made reference to municipalities *Mineiras* during the last election. The analysis reveals that candidates, on average, make reference to 30 municipalities. However this average is highly skewed: the median is 16 municipalities, and the standard deviation is 38. Moreover, the results indicate that, on average, candidates mentioned municipalities 159 times throughout the electoral cycle. These results were also highly skewed: the median was 56 and the standard deviation was 262.
-
-I suggested that, despite our political elite's avowed goals to scatter in the corners of the nation, perhaps they persistently neglect certain constituencies in benefit of others. Indeed, I found that, in a state of 853 municipalities, 30 of them were mentioned one hundred times or more by candidates. And in a stark demonstration that electoral campaigns do not circulate as far as previously claimed, more than **260 municipalities were mentioned less than ten times**. Being from a populous city, with high GINI coefficient, significantly increased the chances of having it mentioned in their campaigns.
