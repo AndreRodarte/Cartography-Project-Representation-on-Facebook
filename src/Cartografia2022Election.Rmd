@@ -57,7 +57,7 @@ library(remotes)
 ```{r, message=FALSE, warning=FALSE}
 # DATASETS"
 CrowdTangle <- read_csv(
-  "data/(CART) (COLLECTTED 4-1-2023) CrowdTangle Historical-Report- Parliamentary Candidates MG - 2022-01-01-UNTIL-2023-01-02.csv"
+  "../data/(CART) (COLLECTTED 4-1-2023) CrowdTangle Historical-Report- Parliamentary Candidates MG - 2022-01-01-UNTIL-2023-01-02.csv"
 ) %>%
   select(
     page_name,
@@ -88,7 +88,7 @@ CrowdTangle <- CrowdTangle[CrowdTangle$timestamp <= cutoff_date, ]
 # This sample procedure yielded a total of 73,159 Facebook posts.
 
 # Data on the municipalities of the state of Minas Gerais (MG)
-MGMunicipalities <- read_csv("data/ListMunicipalitiesIBGE.csv",
+MGMunicipalities <- read_csv("../data/ListMunicipalitiesIBGE.csv",
   col_types = cols(
     Population = col_number(),
     Medium_Salary = col_number(), PIB_per_capita = col_number(),
@@ -98,7 +98,7 @@ MGMunicipalities <- read_csv("data/ListMunicipalitiesIBGE.csv",
 )
 
 # Data on the campaign expenses
-dfExpensesTotal <- read_csv("data/dfCampaignExpenses.csv") %>%
+dfExpensesTotal <- read_csv("../data/dfCampaignExpenses.csv") %>%
   select(
     SG_UF,
     DS_CARGO,
@@ -145,7 +145,7 @@ CrowdTangle_Engagement <- CrowdTangle %>%
   )
 
 # The new dataset is:
-dfTSE <- read_delim("df_TSE.csv",
+dfTSE <- read_delim("../data/df_TSE.csv",
   delim = ";",
   escape_double = FALSE, trim_ws = TRUE
 )
@@ -206,7 +206,7 @@ df_combined$Absolute_Engagement <- rowSums(df_combined[, c("Total_Post_Views", "
 df_combined$Relative_Engagement <- rowSums(df_combined[, c("Total_Post_Views", "Total_Interactions", "Total_Comments")]) / df_combined$N_Posts
 
 # Adding data about candidate's declared wealth and campaign expenses
-Wealth <- read.csv("Wealth.csv") %>%
+Wealth <- read.csv("../data/Wealth.csv") %>%
   select(full_name, Bens_Declarados)
 
 colnames(Wealth)[colnames(Wealth) == "Bens_Declarados"] <- "Declared_Wealth"
@@ -474,7 +474,6 @@ df_ztransformed$PoliticalClass <- as.factor(df_ztransformed$PoliticalClass)
 ```{r}
 # Dealing with missing values
 # Removing NAs
-df_ztransformed$nr_ads[is.na(df_ztransformed$nr_ads)] <- 0
 df_ztransformed$ExpensesAds[is.na(df_ztransformed$ExpensesAds)] <- 0
 
 # Wealth | I want to make sure that the imputation will maintain a similar mean, sd, median and distribution.
@@ -776,6 +775,8 @@ muni_mentions_analysis <- posts_with_muni %>%
 ###############################
 #### Adding ambiguous names ###
 ###############################
+muni_ambiguous_analysis <- read_rds("data/muni_ambiguous_analysis.rds")
+
 muni_mentions_analysis_combined <- full_join(muni_mentions_analysis, muni_ambiguous_analysis, by = c("page_name" = "page_name.y")) %>%
   mutate(
     total_mentions = ifelse(is.na(total_mentions.y), total_mentions, total_mentions + total_mentions.y),
