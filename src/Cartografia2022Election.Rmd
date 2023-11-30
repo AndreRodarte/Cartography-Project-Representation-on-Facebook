@@ -10,22 +10,17 @@ output: html_document
 
 ```{r setup, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
 options(scipen = 999) # R uses scientific notations as a default.
-# citation("DHARMa")
 library(tidyverse)
-library(readr)
 library(stringdist)
 library(datasets)
 library(janitor)
 library(lubridate)
 library(tidytext)
-library(stringr)
 library(tokenizers)
 library(wordcloud)
 library(textdata)
 library(geobr)
-library(ggplot2)
 library(sf)
-library(dplyr)
 library(ggmap)
 library(broom)
 library(RColorBrewer)
@@ -36,17 +31,7 @@ library(widyr)
 library(janeaustenr)
 library("lexiconPT")
 library(stringi)
-library(purrr)
 
-# Regression analysis
-# install.packages("caret")
-# install.packages("car")
-# install.packages("leaps")
-# install.packages("MASS")
-# install.packages("partykit")
-# install.packages("nnet")
-# install.packages("EMT")
-# install.packages("DHARMa")
 library(caret)
 library(car)
 library(leaps)
@@ -58,13 +43,9 @@ library(DHARMa)
 
 # DATA VISUALIZATION
 # install.packages('maps')
-# install.packages("tibble")
-# install.packages("forcats")
 # install.packages("plotly")
 library(maps)
 library(plotly)
-library(tibble)
-library(forcats)
 
 # Facebook Ads
 library(highcharter)
@@ -73,14 +54,9 @@ library(furrr)
 library(remotes)
 ```
 
-```{r}
-getwd()
-library(tidyverse)
-```
-
 ```{r, message=FALSE, warning=FALSE}
 # DATASETS"
-CrowdTangle <- readr::read_csv(
+CrowdTangle <- read_csv(
   "data/(CART) (COLLECTTED 4-1-2023) CrowdTangle Historical-Report- Parliamentary Candidates MG - 2022-01-01-UNTIL-2023-01-02.csv"
 ) %>%
   select(
@@ -112,7 +88,7 @@ CrowdTangle <- CrowdTangle[CrowdTangle$timestamp <= cutoff_date, ]
 # This sample procedure yielded a total of 73,159 Facebook posts.
 
 # Data on the municipalities of the state of Minas Gerais (MG)
-MGMunicipalities <- readr::read_csv("data/ListMunicipalitiesIBGE.csv",
+MGMunicipalities <- read_csv("data/ListMunicipalitiesIBGE.csv",
   col_types = cols(
     Population = col_number(),
     Medium_Salary = col_number(), PIB_per_capita = col_number(),
@@ -122,7 +98,7 @@ MGMunicipalities <- readr::read_csv("data/ListMunicipalitiesIBGE.csv",
 )
 
 # Data on the campaign expenses
-dfExpensesTotal <- readr::read_csv("data/dfCampaignExpenses.csv") %>%
+dfExpensesTotal <- read_csv("data/dfCampaignExpenses.csv") %>%
   select(
     SG_UF,
     DS_CARGO,
