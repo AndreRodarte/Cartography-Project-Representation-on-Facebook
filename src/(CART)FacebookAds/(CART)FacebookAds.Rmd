@@ -458,3 +458,29 @@ InteractiveMap_ads <- ggplotly(Map_ads_TEST) %>%
 
 InteractiveMap_ads
 ```
+
+```{r}
+# Black and white color scale
+custom_colors <- colorRampPalette(c("#D3D3D3", "black"))(n = 100)
+
+# Choropleth map
+Map_ads_black <- ggplot(data=IBGE_ads) +
+  geom_sf(aes(fill=n, text=Name, geometry=geom), color= NA, size=.15) + 
+    labs(title="2022 Election: municipalities mentioned", size=10) +
+  guides(fill = guide_colourbar(title = "Mentions")) +
+  theme_minimal() +
+  theme(
+    axis.line = element_blank(), axis.text = element_blank(),
+    axis.ticks = element_blank(), axis.title = element_blank(),
+    panel.grid = element_blank()
+  ) +
+  scale_fill_gradientn(
+    colours = custom_colors
+  )
+
+InteractiveAdsMapBlack <- ggplotly(Map_ads_black) %>%
+  layout(title = list(text = paste0("<B>2022 Election: municipalities mentioned</B>")))
+
+InteractiveAdsMapBlack
+```
+
