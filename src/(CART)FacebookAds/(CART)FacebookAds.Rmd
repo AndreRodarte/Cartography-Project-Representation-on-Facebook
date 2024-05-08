@@ -145,7 +145,7 @@ for (i in seq_along(fields_vector)) {
 }
 ```
 
-#Summary of Ads (to complement RQ1)
+#(RQ2) Summary of Ads 
 
 ```{r, warning=FALSE}
 #Write dataset
@@ -222,8 +222,8 @@ This analysis revealed 56 accounts that paid for FB ads but Crowdtangle could no
 #Combine original df with data about FB ads.
 
 ```{r}
-#Merge datasets 
-df_ads_combinedT <- left_join(df_LATINMERGE, df_ads_clean, by = "page_name", na_matches = "never")
+# #Merge datasets 
+# df_ads_combinedT <- left_join(df_LATINMERGE, df_ads_clean, by = "page_name", na_matches = "never")
 ```
 
 ### Distribution
@@ -398,23 +398,45 @@ hist(IBGE_ads$n,
 )
 ```
 
+**Adding local candidacies**
+
 ```{r}
-IBGE_ads_log <- IBGE_ads
-
-#Log transformation of number of mentions
-IBGE_ads_log$n <- log(IBGE_ads_log$n + 1)
-
-hist(IBGE_ads_log$n, 
-     col = "skyblue",
-     border = "white",
-     xlab = "",  
-     main = "Histogram of Mentions"  
-)
+### Candidates' municipalities of origin
+df_ads_combined$NM_MUNICIPIO_NASCIMENTO = stri_trans_general(str = df_ads_combined$NM_MUNICIPIO_NASCIMENTO, id = "Latin-ASCII")   #removing accents
+df_ads_combined$NM_MUNICIPIO_NASCIMENTO <- tolower(df_ads_combined$NM_MUNICIPIO_NASCIMENTO) #lower case
 ```
 
 ```{r}
-Model_ads_Geo <- lm(n ~ Population_2021 + IDHM + PIB_per_capita,
+#Creating a binary variable indicating whether the candidate was born in that municipality
+IBGE_ads$Candidate_Born <- ifelse(IBGE_ads$name_muni %in% df_ads_combined$NM_MUNICIPIO_NASCIMENTO, 1, 0)
+```
+
+## Regressions
+
+```{r}
+IBGE_ads_log <- IBGE_ads
+
+#Log transformations 
+IBGE_ads_log$Ads_Count <- log(IBGE_ads_log$Ads_Count + 1)
+IBGE_ads_log$Population <- log(IBGE_ads_log$Population + 1)
+IBGE_ads_log$Medium_Salary <- log(IBGE_ads_log$Medium_Salary +1)
+IBGE_ads_log$Demographic_Density <- log(IBGE_ads_log$Demographic_Density + 1)
+IBGE_ads_log$Candidate_Born <- log(IBGE_ads_log$Candidate_Born + 1)
+
+# hist(IBGE_ads_log$Ads_Count, 
+#      col = "skyblue",
+#      border = "white",
+#      xlab = "",  
+#      main = "Histogram of Mentions"  
+# )
+```
+
+```{r}
+Model_ads_Geo <- lm(Ads_Count ~ Population + GINI + Medium_Salary + Demographic_Density + factor(Candidate_Born),
                        data = IBGE_ads_log) 
+```
+
+```{r}
 omnibus_ads_geo <- Anova(Model_ads_Geo, type = "III")
 omnibus_ads_geo
 ```
@@ -423,7 +445,11 @@ omnibus_ads_geo
 # Check for multicollinearity using vif()
 vif_ads_geo <- vif(Model_ads_Geo)
 print(vif_ads_geo)
+```
+
+```{r}
 summary(Model_ads_Geo)
+# tidymodel_geo_ads <- tidy(Model_ads_Geo)
 ```
 
 ```{r}
