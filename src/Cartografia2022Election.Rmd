@@ -46,6 +46,14 @@ library(DHARMa)
 # install.packages("plotly")
 library(maps)
 library(plotly)
+install.packages("showtext")
+install.packages("sysfonts")
+library(sysfonts)
+library(showtext)
+# Add EB Garamond font from Google Fonts
+font_add_google("EB Garamond", "ebgaramond")
+# Automatically use showtext for new plots
+showtext_auto()
 
 # Facebook Ads
 library(highcharter)
@@ -244,7 +252,10 @@ df_total_arranged %>%
     notchwidth = 1
   ) +
   xlab("Campaign Expenditure") +
-  ylab("")
+  ylab("") +
+  theme(text = element_text(family = "ebgaramond", face = "bold", size = 25),  
+    axis.text.x = element_blank()  
+  )
 ```
 
 ```{r}
@@ -255,7 +266,10 @@ df_total_arranged %>%
     notchwidth = 1
   ) +
   xlab("Relative Engagement on Facebook") +
-  ylab("")
+  ylab("") +
+  theme(text = element_text(family = "ebgaramond", face = "bold", size = 25),  
+    axis.text.x = element_blank()  
+  )
 ```
 
 # [RQ1] Supply side
