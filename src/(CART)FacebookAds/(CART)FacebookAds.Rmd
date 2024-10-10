@@ -11,6 +11,7 @@ output: html_document
 #devtools::install_github("facebookresearch/Radlibrary")
 #remotes::install_github("favstats/metatargetr")
 
+library(readr)
 library(tidyverse)
 library(tidytext)
 library(dplyr)
@@ -23,6 +24,7 @@ library(lubridate)
 library(purrr)
 library(data.table)
 library(stringdist)
+library(stringi)
 
 #DATA VISUALIZATION
 #install.packages('maps')
@@ -61,21 +63,22 @@ get_mid <- function(spend_upper_bound, spend_lower_bound) {
   (spend_upper_bound+spend_lower_bound)/2
 }
 
-assign_colors <- function(dat, n = 12) {
-  
-  color_sample <- colorspace::divergingx_hcl(n)
-  
-  lenght <- dat$color[is.na(dat$color)] %>% length
-  
-  if(lenght==0) return(invisible())
-  
-  cols <- sample(color_sample, lenght, replace = T)
-  
-  dat$color[is.na(dat$color)] <- cols
-  
-  return(dat)
-  
-}
+# Data on the municipalities of the state of Minas Gerais (MG)
+# MGMunicipalities <- read_csv("data/ListMunicipalitiesIBGE.csv",
+#   col_types = cols(
+#     Population = col_number(),
+#     Medium_Salary = col_number(), 
+#     PIB_per_capita = col_number(),
+#     GINI = col_number(), 
+#     Area = col_number(),
+#     Urban_Area = col_number(), 
+#     Demographic_Density = col_number()
+#   )
+# )
+# MGMunicipalities_Clean <- MGMunicipalities
+# MGMunicipalities_Clean$name_muni <- stri_trans_general(str = MGMunicipalities_Clean$name_muni, id = "Latin-ASCII") # removing accents
+# MGMunicipalities_Clean$name_muni <- tolower(MGMunicipalities_Clean$name_muni) # lower case
+
 ```
 
 #Set up API Credentials
@@ -95,6 +98,7 @@ endpoint <- file.path(api_base_url, api_version, "ads_archive")
 ```
 
 #Query
+Our query procedure consisted of using four keywords (“vote,” “Minas Gerais,” “deputado federal,” “eleições”) and setting the ad delivery region to Minas Gerais. This process yielded 30,657 ads. We then removed those not created by candidates in our sample, resulting in a final corpus of 9,431 ads from 228 accounts. 
 
 ```{r}
 # First, save all of the data types that we will ask the API to extract.
@@ -119,10 +123,10 @@ for (i in seq_along(fields_vector)) {
   query3 <- adlib_build_query(
     ad_reached_countries = "BR",
     ad_active_status = "ALL",
-    search_terms = "Minas Gerais",
+    search_terms = "Minas Gerais", #We used four keywords (“vote,” “Minas Gerais,” “deputado federal,” “eleições”)
     #search_page_ids =
     ad_delivery_date_min = "2022-01-01",
-    ad_delivery_date_max = "2022-10-10",
+    ad_delivery_date_max = "2022-10-02",
     ad_type = "POLITICAL_AND_ISSUE_ADS",
     publisher_platform = c(
       "FACEBOOK",
@@ -152,6 +156,7 @@ for (i in seq_along(fields_vector)) {
 df_terms <- fb_ad_list[["ad"]] %>%
   distinct() %>%
   arrange(desc(ad_creation_time))
+#Our first dataset contains 31,098 ads. This dataset was uploaded to the folder "data".
 
 #Combine by name
 df_ads <- df_terms %>%
@@ -172,18 +177,19 @@ df_ads <- df_terms %>%
 head(df_ads, 20)
 ```
 
+ 
 **Add accounts that promoted ads but could not be found in Crowdtangle**
+Next, we compared our ads dataset (df_ads) with the dataset we had created with organic posts (see "Cartografia2022Election.Rmd" to obtain the latter)
 
 ```{r}
 ## Standardize the case (converting to lowercase)
 ## Remove leading and trailing white spaces
 df$page_name <- trimws(df$page_name)
 df$name_ballot <- trimws(df$name_ballot)
-df_ads$page_name <- trimws(df_ads$page_name)
-
-
 df$page_name <- tolower(df$page_name)
 df$name_ballot <- tolower(df$name_ballot)
+
+df_ads$page_name <- trimws(df_ads$page_name)
 df_ads$page_name <- tolower(df_ads$page_name)
 
 df$page_name = stri_trans_general(str = df$page_name, id = "Latin-ASCII")
@@ -223,30 +229,47 @@ This analysis revealed 56 accounts that paid for FB ads but Crowdtangle could no
 
 ```{r}
 # #Merge datasets 
-# df_ads_combinedT <- left_join(df_LATINMERGE, df_ads_clean, by = "page_name", na_matches = "never")
+df_ads_combined <- left_join(df, df_ads, by = "page_name", na_matches = "never")
 ```
 
 ### Distribution
 
-```{r}
-df_terms$ad_creative_bodies = stri_trans_general(str = df_terms$ad_creative_bodies, id = "Latin-ASCII")                                             #removing accents
-df_terms$ad_creative_bodies <- tolower(df_terms$ad_creative_bodies)  #lower case
+Now, we will remove from df_terms all posts that were not created by our sample.
 
+```{r}
+df_terms_clean <- df_terms %>% 
+  select_if(~ !is.list(.))
+
+df_terms_clean$ad_creative_bodies = stri_trans_general(str = df_terms_clean$ad_creative_bodies, id = "Latin-ASCII") #removing accents
+df_terms_clean$ad_creative_bodies <- tolower(df_terms_clean$ad_creative_bodies)  #lower case
+df_terms_clean$page_name <- tolower(df_terms_clean$page_name)
+df_terms_clean$page_name <- trimws(df_terms_clean$page_name)
+df_terms_clean$page_name = stri_trans_general(str = df_terms_clean$page_name, id = "Latin-ASCII")
+# write.csv(df_terms_clean, "df_terms_clean.csv", row.names = FALSE)
 
 ################################
 #Tokenization and identification
-#First, we need to check whether each element in the body variable contains any of the municipality names.
-ads_with_muni <- df_terms %>% 
+
+#First, we will remove all ads that were not created by our sample:
+page_names_list <- unique(df_ads_combined$page_name)
+df_terms_filtered <- df_terms_clean %>%
+  filter(page_name %in% page_names_list)
+accounts_with_ads <- length(unique(df_terms_filtered$page_name))
+
+#Second, we need to check whether each element in the body variable contains any of the municipality names.
+ads_with_muni <- df_terms_filtered %>% 
           filter(
           str_detect(ad_creative_bodies, paste(muni_clean$name_muni, collapse = "|"), negate = F)
           )   
-
-#This procedure identified 14,044 ads.
+# write.csv(df_terms_filtered, "df_terms_filtered.csv", row.names = FALSE)
 ```
+
+*Results*: we identified 9,431 ads created by 228 accounts in our sample. 4,245 out of these total ads contained references to Minas Gerais municipalities.
+
 
 ```{r}
 ads <- str_extract_all(
-  df_terms$ad_creative_bodies, 
+  df_terms_filtered$ad_creative_bodies, 
   paste(muni_clean$name_muni, collapse = "|"), 
   simplify = FALSE)
 
@@ -260,46 +283,33 @@ ads_muni_mentioned <- ads_list %>%
 
 #Adding the number of mentions to the datalist 
 muni4 <- left_join(muni_clean, ads_muni_mentioned, by = "name_muni", copy = FALSE, keep = FALSE)
-
 muni4$n <- muni4$n %>% replace_na(0)
 
 ####################################################
 #############  REPLACE AMBIGUOUS NAMES #############
+####################################################
+
+# We conducted a UPD + manual analysis of  all posts containing ambiguous municipality names, so that we could make sure whether a candidate was referring to one of them. The specific posts which did so can be found in "Manual ambiguous ads identification.txt". More information can be found in "AmbiguousAds.Rmd"
 
 muni4 <- muni4 %>%
-  mutate(n = ifelse(name_muni == "bandeira", 2, n))  %>% 
+  mutate(n = ifelse(name_muni == "bandeira", 8, n))  %>% 
   mutate(n = ifelse(name_muni == "conquista", 0, n)) %>% 
-  mutate(n = ifelse(name_muni == "divino", 8, n))    %>% 
-  mutate(n = ifelse(name_muni == "extrema", 14, n))   %>%
-  mutate(n = ifelse(name_muni == "liberdade", 8, n))  %>%
-  mutate(n = ifelse(name_muni == "luz", 6, n))        %>% 
-  mutate(n = ifelse(name_muni == "machado", 29, n))   %>% 
-  mutate(n = ifelse(name_muni == "passos", 95, n))   %>% 
-  mutate(n = ifelse(name_muni == "paiva", 2, n))      %>% 
-  mutate(n = ifelse(name_muni == "campanha", 10, n))   %>% 
-  mutate(n = ifelse(name_muni == "cristina", 3, n))   %>% 
-  mutate(n = ifelse(name_muni == "goncalves", 5, n))  %>% 
-  mutate(n = ifelse(name_muni == "pimenta", 4, n))
-
-
-# bandeira  =  2
-# conquista =  0
-# divino    =  8
-# extrema   =  14
-# liberdade =  8
-# luz       =  6
-# machado   =  29
-# passos    =  95
-# paiva     =  2
-# campanha  =  10
-# cristina  =  3
-# goncalves =  5
-# pimenta   =  4
-
+  mutate(n = ifelse(name_muni == "divino", 2, n))    %>% 
+  mutate(n = ifelse(name_muni == "extrema", 12, n))   %>%
+  mutate(n = ifelse(name_muni == "liberdade", 0, n))  %>%
+  mutate(n = ifelse(name_muni == "luz", 0, n))        %>% 
+  mutate(n = ifelse(name_muni == "machado", 40, n))   %>% 
+  mutate(n = ifelse(name_muni == "passos", 40, n))   %>% 
+  mutate(n = ifelse(name_muni == "paiva", 3, n))      %>% 
+  mutate(n = ifelse(name_muni == "campanha", 0, n))   %>% 
+  mutate(n = ifelse(name_muni == "cristina", 1, n))   %>% 
+  mutate(n = ifelse(name_muni == "goncalves", 6, n))  %>% 
+  mutate(n = ifelse(name_muni == "pimenta", 1, n))
 ```
 
+Determining the number of unique mentions per candidate
+
 ```{r, results='hide', message=FALSE, warning=FALSE}
-#UNIQUE MENTIONS PER CANDIDATE
 #Exclude ambiguous names 
 ambiguous_names <- c("campanha", "cristina", "bandeira", "conquista", "divino", "extrema", "goncalves", "liberdade", "luz", "machado", "passos", "paiva", "pimenta")
 filtered_muni_names <- muni_clean$name_muni[!(muni_clean$name_muni %in% ambiguous_names)]
@@ -326,6 +336,26 @@ muni_mentions_analysis_ads <-  ads_with_muni %>%
 ###############################
 #### Adding ambiguous names ###
 ###############################
+#For the following procedure, we uploaded the dataset "df_ambiguous_ads" from our data folder. This dataset was created based on our UPD and qualitative reading procedures, which can be found in "AmbiguousAds.Rmd". 
+
+# First, we count the mentions of ambiguous names in the ads.
+muni_ambiguous_analysis_ads <-  df_ambiguous_ads %>%
+  mutate(mentioned_cities = str_extract_all(ad_creative_bodies.y, paste(ambiguous_names, collapse = "|"))) %>%
+  unnest(mentioned_cities) %>%
+  group_by(page_name.y, mentioned_cities) %>%
+  summarise(
+    total_mentions = n(),
+    unique_mentions = 1,
+    cities_mentioned = paste(mentioned_cities, collapse = ", ")
+  ) %>%
+  group_by(page_name.y) %>%
+  summarise(
+    total_mentions.y = sum(total_mentions),#Total count of city mentions for each account
+    unique_mentions.y = n(),#Number of unique cities mentioned for each page_name.
+    cities_mentioned.y = list(unique(mentioned_cities))#A list of city names mentioned by each account
+  )
+
+#Next, we combine both datasets
 muni_mentions_analysis_ads_combined <- full_join(muni_mentions_analysis_ads, muni_ambiguous_analysis_ads, by = c("page_name" = "page_name.y")) %>%
   mutate(
     total_mentions = ifelse(is.na(total_mentions.y), total_mentions, total_mentions + total_mentions.y),
@@ -334,9 +364,7 @@ muni_mentions_analysis_ads_combined <- full_join(muni_mentions_analysis_ads, mun
   ) %>%
   select(page_name, total_mentions, unique_mentions, cities_mentioned)
 ```
-
 **What is the average number of unique city mentions by a candidate?**
-
 ```{r}
 
 mean(muni_mentions_analysis_ads_combined$unique_mentions, na.rm = TRUE)
@@ -345,9 +373,7 @@ median(muni_mentions_analysis_ads_combined$unique_mentions, na.rm = TRUE)
 
 sd(muni_mentions_analysis_ads_combined$unique_mentions, na.rm = TRUE)
 ```
-
 **What is the average number of city mentions by a candidate?**
-
 ```{r}
 mean(muni_mentions_analysis_ads_combined$total_mentions, na.rm = TRUE)
 
@@ -355,38 +381,30 @@ median(muni_mentions_analysis_ads_combined$total_mentions, na.rm = TRUE)
 
 sd(muni_mentions_analysis_ads_combined$total_mentions, na.rm = TRUE)
 ```
-
 **Adding Census Data**
-
 ```{r}
 IBGE_ads <- left_join(muni4, MGMunicipalities_Clean, by = "name_muni", copy = T, keep = FALSE)
 IBGE_ads <- replace(IBGE_ads, is.na(IBGE_ads), 0)
 ```
 
 **How many municipalities were mentioned less than ten times?**
-
 ```{r}
 sum(IBGE_ads$n <10, na.rm=TRUE)
 ```
-
 ### Correlations
 
 ```{r}
-CorrelationIDHM_ads <- cor.test(IBGE_ads$n, IBGE_ads$IDHM, 
+CorrelationIDHM_ads <- cor.test(IBGE_ads$n, IBGE_ads$GINI, 
                     method = "pearson")
-
-CorrelationPopulation_ads <- cor.test(IBGE_ads$n, IBGE_ads$Population_2021, 
+CorrelationPopulation_ads <- cor.test(IBGE_ads$n, IBGE_ads$Population, 
                     method = "pearson")
-
 CorrelationPIB_ads <- cor.test(IBGE_ads$n, IBGE_ads$PIB_per_capita, 
                            method = "pearson")
-
 
 CorrelationPopulation_ads
 CorrelationIDHM_ads
 CorrelationPIB_ads
 ```
-
 ```{r}
 hist(IBGE_ads$n, 
      breaks = 100,  
@@ -397,13 +415,11 @@ hist(IBGE_ads$n,
      main = "Histogram of Mentions"  
 )
 ```
-
 **Adding local candidacies**
-
 ```{r}
-### Candidates' municipalities of origin
-df_ads_combined$NM_MUNICIPIO_NASCIMENTO = stri_trans_general(str = df_ads_combined$NM_MUNICIPIO_NASCIMENTO, id = "Latin-ASCII")   #removing accents
-df_ads_combined$NM_MUNICIPIO_NASCIMENTO <- tolower(df_ads_combined$NM_MUNICIPIO_NASCIMENTO) #lower case
+#Candidates' municipalities of origin
+df_ads_combined$NM_MUNICIPIO_NASCIMENTO = stri_trans_general(str = df_ads_combined$NM_MUNICIPIO_NASCIMENTO, id = "Latin-ASCII")
+df_ads_combined$NM_MUNICIPIO_NASCIMENTO <- tolower(df_ads_combined$NM_MUNICIPIO_NASCIMENTO)
 ```
 
 ```{r}
@@ -412,9 +428,10 @@ IBGE_ads$Candidate_Born <- ifelse(IBGE_ads$name_muni %in% df_ads_combined$NM_MUN
 ```
 
 ## Regressions
-
 ```{r}
 IBGE_ads_log <- IBGE_ads
+IBGE_ads_log <- IBGE_ads_log %>%
+  rename(Ads_Count = n)
 
 #Log transformations 
 IBGE_ads_log$Ads_Count <- log(IBGE_ads_log$Ads_Count + 1)
@@ -446,44 +463,12 @@ omnibus_ads_geo
 vif_ads_geo <- vif(Model_ads_Geo)
 print(vif_ads_geo)
 ```
-
 ```{r}
 summary(Model_ads_Geo)
 # tidymodel_geo_ads <- tidy(Model_ads_Geo)
 ```
-
-```{r}
-IBGE_ads_clean <- IBGE_ads %>% 
-  filter(!is.na(n))
-
-BV_ads <- ggplot()+
-  geom_jitter(data=IBGE_ads_log, aes(x = n, y = Population_2021, text=name_muni)) + 
-  labs(title = "Relationship between mentions in ads and population (estimated for 2021)", x = "Mentions in ads", y = "population")+
-  guides(fill = guide_colourbar(title = "Mentions")) 
-  
-InteractivePopulation_ads <- plotly::ggplotly(BV_ads)
-InteractivePopulation_ads
-```
-
-```{r}
-IBGE_ads_TEST <- st_as_sf(IBGE_ads, wkt = "geom")
-
-# Ploting an interactive choropleth map
-Map_ads_TEST <- ggplot(data=IBGE_ads_TEST) +
-  geom_sf(aes(fill=n, text=name_muni, geometry=geom), color= NA, size=.15) + 
-    labs(title="2022 Election: municipalities mentioned", size=10) +
-    guides(fill = guide_colourbar(title = "Mentions")) +
-    theme_minimal() +
-    theme(axis.line = element_blank(), axis.text = element_blank(),
-        axis.ticks = element_blank(), axis.title = element_blank(),
-        panel.grid = element_blank()) +
-  scale_fill_viridis_c()
-
-InteractiveMap_ads <- ggplotly(Map_ads_TEST) %>% 
-  layout(title = list(text = paste0("<B>2022 Election: municipalities mentioned in ads</B>")))
-
-InteractiveMap_ads
-```
+### Geographical visual analysis
+Based on the number of times municipalities *mineiras* were mentioned in ads, we plotted an interactive choropleth map. The map allows the reader to hoover over the municipalities and see their names and the number of times they were mentioned.
 
 ```{r}
 # Black and white color scale
@@ -509,4 +494,3 @@ InteractiveAdsMapBlack <- ggplotly(Map_ads_black) %>%
 
 InteractiveAdsMapBlack
 ```
-

@@ -5,7 +5,7 @@ date: "2023-06-12"
 output: html_document
 ---
 
-# **Political Representation and Propaganda on Facebook: 2022 Brazilian Elections**
+# **Does Social Media Level the Political Field or Reinforce Existing Inequalities? Cartographies of the 2022 Brazilian Election**
 
 
 ```{r setup, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
@@ -44,10 +44,10 @@ library(DHARMa)
 # DATA VISUALIZATION
 # install.packages('maps')
 # install.packages("plotly")
+# install.packages("showtext")
+# install.packages("sysfonts")
 library(maps)
 library(plotly)
-install.packages("showtext")
-install.packages("sysfonts")
 library(sysfonts)
 library(showtext)
 # Add EB Garamond font from Google Fonts
@@ -135,10 +135,10 @@ dfExpenses <- left_join(dfExpenses, dfExpenses_FB, by = "full_name")
 
 ## CrowdTangle
 
-I combined the TSE data set with information about the candidates' communications on social media, specifically their account names, number of views and number of interactions.
+We combined the TSE data set with information about the candidates' communications on social media, specifically their account names, number of views and number of interactions.
 
 ```{r, message=FALSE, warning=FALSE}
-# First, I create a new dataset combining all interactions these candidates received during the election
+# First, we created a dataset combining all interactions these candidates received during the election
 CrowdTangle_Engagement <- CrowdTangle %>%
   group_by(page_name) %>%
   summarize(
@@ -224,6 +224,7 @@ df <- left_join(df, dfExpenses, by = "full_name")
 ```
 
 **Descriptive analysis of the entire sample**
+Our sample created a total of 73,159 Facebook posts.
 
 ```{r}
 df_total <- df %>%
@@ -277,8 +278,9 @@ df_total_arranged %>%
 ## What kind of candidate was not on Facebook during the last electoral cycle?
 
 ```{r}
-df_nas <- df[is.na(df$page_name), ] # Separating the dataset
+df_nas <- df[is.na(df$page_name), ] # 659 candidates did not have a public account on Facebook.
 ```
+
 
 ```{r}
 nas_intersections <- df_nas %>%
@@ -304,7 +306,7 @@ Specifically, we have:
 | **Race**      | 361 non-white             | 291 white                      |
 | **Education** | 287 with college complete | 372 college incomplete or less |
 
-: *Table 1: Absent from Facebook*
+: *Table: Absent from Facebook*
 
 
 ```{r}
@@ -321,10 +323,12 @@ interactions_occupation %>%
 
 
 ## **Is there a relationship between engagement on Facebook and candidates' profiles?**
+We previously noted that 659 candidates did not have a public account on Facebook. Now, we will focus on the 349 candidates who had an account and that created at least one post during the campaign (i.e. had an active account)
 
 ```{r}
 df_clean <- df %>%
-  filter(!is.na(N_Posts))
+  filter(!is.na(N_Posts)) 
+# N = 349 candidates had an account and  created at least one post during the campaign
 
 table(df_clean$education) # A similar code was used to verify the number of candidates of different gender and race.
 ```
@@ -470,8 +474,6 @@ Over-dispersal of count data can be verified in our dependent variable if the va
 mean(df_clean$Relative_Engagement)
 var(df_clean$Relative_Engagement)
 ```
-
-
 ```{r}
 # Transforming the data
 df_ztransformed <- df_clean
@@ -692,6 +694,7 @@ muni <- read_municipality(
   code_muni = "MG",
   year = 2020
 )
+#Please note that read_municipality() relies on an Internet connection. It does not throw an error without a connection.
 
 ################################
 ################################
@@ -745,7 +748,11 @@ muni3$freq <- muni3$freq %>% replace_na(0)
 
 ####################################################
 ####################################################
-########  REPLACE AMBIGUOUS NAMES (SEE ADITIONAL FOLDER)
+##########  REPLACE AMBIGUOUS NAMES ################
+######### (e.g. contagem "regressiva")  ############
+####################################################
+####################################################
+
 muni3 <- muni3 %>%
   mutate(n = ifelse(name_muni == "bandeira", 28, n)) %>%
   mutate(n = ifelse(name_muni == "conquista", 12, n)) %>%
@@ -758,6 +765,7 @@ muni3 <- muni3 %>%
   mutate(n = ifelse(name_muni == "paiva", 1, n)) %>%
   mutate(n = ifelse(name_muni == "campanha", 4, n)) %>%
   mutate(n = ifelse(name_muni == "cristina", 0, n)) %>%
+  mutate(n = ifelse(name_muni == "contagem", 810, n)) %>%
   mutate(n = ifelse(name_muni == "goncalves", 0, n)) %>%
   mutate(n = ifelse(name_muni == "pimenta", 15, n))
 ```
@@ -789,7 +797,8 @@ muni_mentions_analysis <- posts_with_muni %>%
 ###############################
 #### Adding ambiguous names ###
 ###############################
-muni_ambiguous_analysis <- read_rds("data/muni_ambiguous_analysis.rds")
+muni_ambiguous_analysis <- read_rds("../data/muni_ambiguous_analysis.rds") 
+#Please check "AmbiguousNames.RMD" for our analysis of posts referencing municipalities with ambiguous names. 
 
 muni_mentions_analysis_combined <- full_join(muni_mentions_analysis, muni_ambiguous_analysis, by = c("page_name" = "page_name.y")) %>%
   mutate(
@@ -851,45 +860,70 @@ CorrelationPIB
 
 ```{r}
 ggplot(data = IBGE) +
-  geom_jitter() +
-  aes(x = n, y = GINI, color = Mesoregion) +
-  labs(title = "Relationship between mentions and Human Development Index", x = "Mentions", y = "Human Development Index")
+  geom_jitter(aes(x = n, y = GINI, color = Mesoregion)) +
+  labs(title = "Relationship between mentions and Human Development Index", 
+       x = "Mentions", 
+       y = "Human Development Index") +
+  theme(
+    text = element_text(family = "ebgaramond", face = "bold", size = 25),
+    plot.title = element_text(hjust = 0.5) 
+  )
 ```
 
 ```{r}
 ggplot(data = IBGE) +
-  geom_jitter() +
-  aes(x = n, y = Population, color = Mesoregion) +
-  labs(title = "Relationship between mentions and population", x = "Mentions", y = "Population")
+  geom_jitter(aes(x = n, y = Population, color = Mesoregion)) +
+  labs(title = "Relationship between mentions and population", 
+       x = "Mentions", 
+       y = "Population") +
+  theme(
+    text = element_text(family = "ebgaramond", face = "bold", size = 25),
+    plot.title = element_text(hjust = 0.5)
+  )
 ```
 
 ```{r}
 ggplot(data = IBGE) +
-  geom_jitter() +
-  aes(x = n, y = PIB_per_capita, color = Mesoregion) +
-  labs(title = "Relationship between mentions and PIB", x = "Mentions", y = "PIB per capita")
+  geom_jitter(aes(x = n, y = PIB_per_capita, color = Mesoregion)) +
+  labs(title = "Relationship between mentions and PIB", 
+       x = "Mentions", 
+       y = "PIB per capita") +
+  theme(
+    text = element_text(family = "ebgaramond", face = "bold", size = 25),
+    plot.title = element_text(hjust = 0.5) 
+  )
 ```
-
 ```{r, message=FALSE, warning=FALSE}
 BV <- ggplot() +
   geom_jitter(data = IBGE, aes(x = n, y = Population, text = name_muni)) +
-  labs(title = "Relationship between mentions and population (estimated for 2021)", x = "Mentions", y = "population") +
-  guides(fill = guide_colourbar(title = "Mentions"))
+  labs(title = "Relationship between mentions and population (estimated for 2021)", 
+       x = "Mentions", 
+       y = "Population") +
+  guides(fill = guide_colourbar(title = "Mentions")) +
+  theme(
+    text = element_text(family = "ebgaramond", face = "bold", size = 15),
+    plot.title = element_text(hjust = 0.5) # Optional: center the title
+  )
 
-InteractivePopulation <- ggplotly(BV)
+# Convert the ggplot object to an interactive plotly object
+InteractivePopulation <- ggplotly(BV, tooltip = "text") %>%
+  layout(
+    title = list(font = list(family = "EB Garamond", size = 15, face = "bold")),
+    xaxis = list(titlefont = list(family = "EB Garamond", size = 10)),
+    yaxis = list(titlefont = list(family = "EB Garamond", size = 10))
+  )
+
+# Display the interactive plot
 InteractivePopulation
+
 ```
+
+### Acccounting for mesoregion
 
 ```{r}
 BV + facet_wrap(vars(Mesoregion))
 ```
 
-```{r}
-ggplot(data = IBGE) +
-  geom_jitter() +
-  aes(x = n, y = PIB_per_capita, color = Mesoregion) +
-  labs(title = "Relationship between PIB per capita and mentions", x = "Mentions", y = "PIB per capita")
-```
 
 ## **Regression**
 
@@ -921,10 +955,42 @@ hist(IBGE_log$Population,
   main = "Histogram of Population" # Set the main title
 )
 ```
+### Candidates' municipalities of origin
+```{r}
+df_clean$NM_MUNICIPIO_NASCIMENTO = stri_trans_general(str = df_clean$NM_MUNICIPIO_NASCIMENTO, id = "Latin-ASCII") 
+df_clean$NM_MUNICIPIO_NASCIMENTO <- tolower(df_clean$NM_MUNICIPIO_NASCIMENTO) 
 
+muni_under_rep <- IBGE %>%
+  filter(n < 10) %>% 
+  select(name_muni, n, Name)
+
+df_origin <- left_join(muni_under_rep, select(df_clean, page_name, NM_MUNICIPIO_NASCIMENTO), by = c("name_muni" = "NM_MUNICIPIO_NASCIMENTO"))
+
+df_origin2 <- df_clean %>%
+  group_by(NM_MUNICIPIO_NASCIMENTO) %>%
+  summarize(page_name = paste(page_name, collapse = ", ")) %>%
+  ungroup()
+
+df_origin3 <- left_join(muni_under_rep, df_origin2, by = c("name_muni" = "NM_MUNICIPIO_NASCIMENTO")) %>%
+  filter(page_name!="NULL")
+
+head(df_origin3,9)
+```
+```{r}
+#Creating a binary variable indicating whether the candidate was born in that municipality
+IBGE$Candidate_Born <- ifelse(IBGE$name_muni %in% df_clean$NM_MUNICIPIO_NASCIMENTO, 1, 0)
+IBGE_log$Candidate_Born <- ifelse(IBGE_log$name_muni %in% df_clean$NM_MUNICIPIO_NASCIMENTO, 1, 0)
+  IBGE_log$Candidate_Born <- log(IBGE_log$Candidate_Born + 1)
+```
+
+Finally, we can run our statistical test to determine which municipalities were targeted the most.
 ```{r}
 Model_Geo <- lm(
-  n ~ Population + GINI + Medium_Salary + Urban_Area + Demographic_Density,
+  n ~ Population + 
+    GINI + 
+    Medium_Salary + 
+    Demographic_Density + 
+    Candidate_Born,
   data = IBGE_log
 )
 ```
@@ -945,48 +1011,22 @@ summary(Model_Geo)
 # To export the results, use tidy and then create a data frame
 tidymodel_geo <- tidy(Model_Geo)
 ```
-
-### Candidates' municipalities of origin
 ```{r}
-df_clean$NM_MUNICIPIO_NASCIMENTO = stri_trans_general(str = df_clean$NM_MUNICIPIO_NASCIMENTO, id = "Latin-ASCII")   #removing accents
-df_clean$NM_MUNICIPIO_NASCIMENTO <- tolower(df_clean$NM_MUNICIPIO_NASCIMENTO) #lower case
-
-muni_under_rep <- IBGE %>%
-  filter(n < 10) %>% 
-  select(name_muni, n, Name)
-
-
-df_origin <- left_join(muni_under_rep, select(df_clean, page_name, NM_MUNICIPIO_NASCIMENTO), by = c("name_muni" = "NM_MUNICIPIO_NASCIMENTO"))
-
-df_origin2 <- df_clean %>%
-  group_by(NM_MUNICIPIO_NASCIMENTO) %>%
-  summarize(page_name = paste(page_name, collapse = ", ")) %>%
-  ungroup()
-
-df_origin3 <- left_join(muni_under_rep, df_origin2, by = c("name_muni" = "NM_MUNICIPIO_NASCIMENTO")) %>%
-  filter(page_name!="NULL")
-
-head(df_origin3,9)
-```
-```{r}
-#Creating a binary variable indicating whether the candidate was born in that municipality
-IBGE$Candidate_Born <- ifelse(IBGE$name_muni %in% df_clean$NM_MUNICIPIO_NASCIMENTO, 1, 0)
-
-#New regression analysis
-model_born <- glm(n ~ Candidate_Born, data = IBGE, family = poisson)
-
-# Summary of the model
-summary(model_born)
+# #New regression analysis
+# model_born <- glm(n ~ Candidate_Born, data = IBGE, family = poisson)
+# 
+# # Summary of the model
+# summary(model_born)
 ```
 
 ```{r}
-#install.packages("lmtest")
-#install.packages("sandwich")
-library(lmtest)
-library(sandwich)
-
-# Perform hypothesis test (e.g., Wald test)
-waldtest(model_born, vcov = vcovHC(model_born, type = "HC1"))
+# #install.packages("lmtest")
+# #install.packages("sandwich")
+# library(lmtest)
+# library(sandwich)
+# 
+# # Perform hypothesis test (e.g., Wald test)
+# waldtest(model_born, vcov = vcovHC(model_born, type = "HC1"))
 ```
 The p-value provides strong evidence to suggest that including the variable Candidate_Born significantly improves the model's fit compared to the null model without any predictors, so we can reject the null hypothesis. 
 
@@ -994,7 +1034,7 @@ This implies that having a candidate born in a particular municipality is associ
 
 ```{r}
 # Calculate odds ratio
-exp(coef(model_born))
+# exp(coef(model_born))
 ```
 The odds ration provides estimated incidence rate ratios (IRRs) for the coefficients in the Poisson regression model. For the Candidate_Born, the estimated IRR is approximately 6.69. This means that, holding all other variables constant, having a candidate originally from a specific municipality increases in about 6.69 times the count of mentions (n) compared to not having a candidate from the same city.
 
@@ -1004,27 +1044,6 @@ The odds ration provides estimated incidence rate ratios (IRRs) for the coeffici
 
 Based on the number of times municipalities *mineiras* were mentioned, we plotted an interactive choropleth map. The map allows the reader to hoover over the municipalities and see their names and the number of times they were mentioned.
 
-```{r, message=FALSE, warning=FALSE}
-# Ploting an interactive choropleth map
-Map <- ggplot() +
-  geom_sf(data = IBGE, aes(fill = n, text = paste(name_muni, "population:", Population), geometry = geom), color = NA, size = .15) +
-  labs(title = "2022 Election: municipalities mentioned", size = 10) +
-  guides(fill = guide_colourbar(title = "Mentions")) +
-  theme_minimal() +
-  theme(
-    axis.line = element_blank(), axis.text = element_blank(),
-    axis.ticks = element_blank(), axis.title = element_blank(),
-    panel.grid = element_blank()
-  ) +
-  scale_fill_gradientn(
-    colours = viridis_colors
-  )
-
-InteractiveMap <- ggplotly(Map) %>%
-  layout(title = list(text = paste0("<B>2022 Election: municipalities mentioned</B>")))
-
-InteractiveMap
-```
 Black and white version
 
 ```{r}
