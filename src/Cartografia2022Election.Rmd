@@ -7,7 +7,6 @@ output: html_document
 
 # **Does Social Media Level the Political Field or Reinforce Existing Inequalities? Cartographies of the 2022 Brazilian Election**
 
-
 ```{r setup, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
 options(scipen = 999) # R uses scientific notations as a default.
 library(tidyverse)
@@ -223,8 +222,7 @@ df <- left_join(df_combined, Wealth, by = "full_name")
 df <- left_join(df, dfExpenses, by = "full_name")
 ```
 
-**Descriptive analysis of the entire sample**
-Our sample created a total of 73,159 Facebook posts.
+**Descriptive analysis of the entire sample** Our sample created a total of 73,159 Facebook posts.
 
 ```{r}
 df_total <- df %>%
@@ -273,14 +271,11 @@ df_total_arranged %>%
   )
 ```
 
-# [RQ1] Supply side
-
-## What kind of candidate was not on Facebook during the last electoral cycle?
+# **RQ1: What congressional candidates were absent from social media?**
 
 ```{r}
 df_nas <- df[is.na(df$page_name), ] # 659 candidates did not have a public account on Facebook.
 ```
-
 
 ```{r}
 nas_intersections <- df_nas %>%
@@ -308,7 +303,6 @@ Specifically, we have:
 
 : *Table: Absent from Facebook*
 
-
 ```{r}
 interactions_occupation <- df_nas %>%
   group_by(occupation) %>%
@@ -321,8 +315,8 @@ interactions_occupation %>%
   arrange(desc(Composition), by_group = TRUE)
 ```
 
+# **RQ2: Is the distribution of social media metrics of engagement among congressional candidates consistent with the normalization hypothesis?**
 
-## **Is there a relationship between engagement on Facebook and candidates' profiles?**
 We previously noted that 659 candidates did not have a public account on Facebook. Now, we will focus on the 349 candidates who had an account and that created at least one post during the campaign (i.e. had an active account)
 
 ```{r}
@@ -446,7 +440,6 @@ occupation_interactions %>%
   arrange(desc(Mean), by_group = TRUE)
 ```
 
-
 ### Voters interacted the most with candidates of what political party?
 
 ```{r}
@@ -465,7 +458,8 @@ interactions_party %>%
   arrange(desc(Mean), by_group = TRUE)
 ```
 
-### Do these variables explain what candidates received more interactions online?
+## Do these variables explain what candidates received more interactions online?
+
 #### **Z-Transformed Regression Analysis**
 
 Over-dispersal of count data can be verified in our dependent variable if the variance exceeds the means. This is the case with "Relative Engagement".
@@ -474,6 +468,7 @@ Over-dispersal of count data can be verified in our dependent variable if the va
 mean(df_clean$Relative_Engagement)
 var(df_clean$Relative_Engagement)
 ```
+
 ```{r}
 # Transforming the data
 df_ztransformed <- df_clean
@@ -682,11 +677,12 @@ plot(ResidualsOutput)
 **Summary:** results indicate that the dispersion of the residuals is not significantly deviating from what the model assumes, and the outlier test also had non significant results. However, they indicate that there are significant deviations in terms of the overall distribution (KS test). Additionally, quantile deviations suggest that the model might not be accurately capturing certain patterns in the data at specific points along the distribution.
 
 ### Conclusion:
+
 Based on this statistical test, we can conclude that online engagement proved to have a strong relationship with already belonging to Brazil's political class, and an even more significant relationship with campaign and Facebook expenses. These results indicate that Facebook does not level the playing field for candidates, as being an incumbent and having enough economic resources are determinant factors for a candidacy's visibility on that platform.
 
-# [RQ2] Distribution
+# RQ3: Do congressional candidates target municipalities in a way that is consistent with their claims to scatter in the corners of the nation?
 
-***What are the constituencies (geographically defined) parliamentarians reached out to the most? Conversely, what constituencies were left aside in this election?***
+Here we are interested in which were the constituencies (geographically defined) parliamentarians reached out to the most and, conversely, what constituencies were left aside in this election.
 
 ```{r, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
 # All municipalities in the state of Minas Gerais
@@ -722,7 +718,6 @@ posts_with_muni_clean <- posts_with_muni
 posts_with_muni_clean$body <- stri_trans_general(str = posts_with_muni_clean$body, id = "Latin-ASCII")
 posts_with_muni_clean$body <- tolower(posts_with_muni_clean$body)
 ```
-
 
 ```{r, results='hide', message=FALSE, warning=FALSE}
 # Identify the occurences in the corpus (both across the dataset and per candidate).
@@ -893,6 +888,7 @@ ggplot(data = IBGE) +
     plot.title = element_text(hjust = 0.5) 
   )
 ```
+
 ```{r, message=FALSE, warning=FALSE}
 BV <- ggplot() +
   geom_jitter(data = IBGE, aes(x = n, y = Population, text = name_muni)) +
@@ -924,8 +920,7 @@ InteractivePopulation
 BV + facet_wrap(vars(Mesoregion))
 ```
 
-
-## **Regression**
+### **RQ3 Regression**
 
 ```{r}
 hist(IBGE$Medium_Salary,
@@ -955,7 +950,9 @@ hist(IBGE_log$Population,
   main = "Histogram of Population" # Set the main title
 )
 ```
-### Candidates' municipalities of origin
+
+##### Candidates' municipalities of origin
+
 ```{r}
 df_clean$NM_MUNICIPIO_NASCIMENTO = stri_trans_general(str = df_clean$NM_MUNICIPIO_NASCIMENTO, id = "Latin-ASCII") 
 df_clean$NM_MUNICIPIO_NASCIMENTO <- tolower(df_clean$NM_MUNICIPIO_NASCIMENTO) 
@@ -976,21 +973,23 @@ df_origin3 <- left_join(muni_under_rep, df_origin2, by = c("name_muni" = "NM_MUN
 
 head(df_origin3,9)
 ```
+
 ```{r}
 #Creating a binary variable indicating whether the candidate was born in that municipality
 IBGE$Candidate_Born <- ifelse(IBGE$name_muni %in% df_clean$NM_MUNICIPIO_NASCIMENTO, 1, 0)
 IBGE_log$Candidate_Born <- ifelse(IBGE_log$name_muni %in% df_clean$NM_MUNICIPIO_NASCIMENTO, 1, 0)
-  IBGE_log$Candidate_Born <- log(IBGE_log$Candidate_Born + 1)
+  
 ```
 
 Finally, we can run our statistical test to determine which municipalities were targeted the most.
+
 ```{r}
 Model_Geo <- lm(
   n ~ Population + 
     GINI + 
     Medium_Salary + 
     Demographic_Density + 
-    Candidate_Born,
+    as.factor(Candidate_Born),
   data = IBGE_log
 )
 ```
@@ -1011,13 +1010,6 @@ summary(Model_Geo)
 # To export the results, use tidy and then create a data frame
 tidymodel_geo <- tidy(Model_Geo)
 ```
-```{r}
-# #New regression analysis
-# model_born <- glm(n ~ Candidate_Born, data = IBGE, family = poisson)
-# 
-# # Summary of the model
-# summary(model_born)
-```
 
 ```{r}
 # #install.packages("lmtest")
@@ -1028,7 +1020,8 @@ tidymodel_geo <- tidy(Model_Geo)
 # # Perform hypothesis test (e.g., Wald test)
 # waldtest(model_born, vcov = vcovHC(model_born, type = "HC1"))
 ```
-The p-value provides strong evidence to suggest that including the variable Candidate_Born significantly improves the model's fit compared to the null model without any predictors, so we can reject the null hypothesis. 
+
+The p-value provides strong evidence to suggest that including the variable Candidate_Born significantly improves the model's fit compared to the null model without any predictors, so we can reject the null hypothesis.
 
 This implies that having a candidate born in a particular municipality is associated with a statistically significant difference in the count of mentions (n) in social media posts.
 
@@ -1036,9 +1029,8 @@ This implies that having a candidate born in a particular municipality is associ
 # Calculate odds ratio
 # exp(coef(model_born))
 ```
+
 The odds ration provides estimated incidence rate ratios (IRRs) for the coefficients in the Poisson regression model. For the Candidate_Born, the estimated IRR is approximately 6.69. This means that, holding all other variables constant, having a candidate originally from a specific municipality increases in about 6.69 times the count of mentions (n) compared to not having a candidate from the same city.
-
-
 
 ### Geographical visual analysis
 

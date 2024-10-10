@@ -81,20 +81,17 @@ get_mid <- function(spend_upper_bound, spend_lower_bound) {
 
 ```
 
-#Set up API Credentials
+# Facebook Ads Query 
+You will need to set up API Credentials for the following procedure
 
 ```{r setup, include=FALSE}
-#################################
-#################################
 # Set up API credentials
-access_token <- "E"
+access_token <- "E" #add here your own credentials
 
 # Define the API endpoint URL
 api_base_url <- "https://graph.facebook.com"
 api_version <- "v15.0"  # Replace if necessary
 endpoint <- file.path(api_base_url, api_version, "ads_archive")
-#################################
-#################################
 ```
 
 #Query
@@ -149,7 +146,7 @@ for (i in seq_along(fields_vector)) {
 }
 ```
 
-#(RQ2) Summary of Ads 
+### Summary of Ads 
 
 ```{r, warning=FALSE}
 #Write dataset
@@ -225,14 +222,12 @@ df_differences_df_clean <- data.frame(page_name = differences_df_clean, Indicato
 
 This analysis revealed 56 accounts that paid for FB ads but Crowdtangle could not identify them. These accounts can be found in df_differences_df_clean.
 
-#Combine original df with data about FB ads.
+#### Combine original df with data about FB ads.
 
 ```{r}
 # #Merge datasets 
 df_ads_combined <- left_join(df, df_ads, by = "page_name", na_matches = "never")
 ```
-
-### Distribution
 
 Now, we will remove from df_terms all posts that were not created by our sample.
 
@@ -266,7 +261,7 @@ ads_with_muni <- df_terms_filtered %>%
 
 *Results*: we identified 9,431 ads created by 228 accounts in our sample. 4,245 out of these total ads contained references to Minas Gerais municipalities.
 
-
+Next, we need to prepare the data for our analysis
 ```{r}
 ads <- str_extract_all(
   df_terms_filtered$ad_creative_bodies, 
@@ -285,12 +280,11 @@ ads_muni_mentioned <- ads_list %>%
 muni4 <- left_join(muni_clean, ads_muni_mentioned, by = "name_muni", copy = FALSE, keep = FALSE)
 muni4$n <- muni4$n %>% replace_na(0)
 
-####################################################
-#############  REPLACE AMBIGUOUS NAMES #############
-####################################################
+```
 
-# We conducted a UPD + manual analysis of  all posts containing ambiguous municipality names, so that we could make sure whether a candidate was referring to one of them. The specific posts which did so can be found in "Manual ambiguous ads identification.txt". More information can be found in "AmbiguousAds.Rmd"
-
+### Replace ambiguous names
+We conducted a UPD + manual analysis of  all posts containing ambiguous municipality names, so that we could make sure whether a candidate was referring to one of them. The specific posts which did so can be found in "Manual ambiguous ads identification.txt". More information can be found in "AmbiguousAds.Rmd"
+```{r}
 muni4 <- muni4 %>%
   mutate(n = ifelse(name_muni == "bandeira", 8, n))  %>% 
   mutate(n = ifelse(name_muni == "conquista", 0, n)) %>% 
@@ -307,7 +301,7 @@ muni4 <- muni4 %>%
   mutate(n = ifelse(name_muni == "pimenta", 1, n))
 ```
 
-Determining the number of unique mentions per candidate
+### Determining the number of unique mentions per candidate
 
 ```{r, results='hide', message=FALSE, warning=FALSE}
 #Exclude ambiguous names 
@@ -328,8 +322,8 @@ muni_mentions_analysis_ads <-  ads_with_muni %>%
   ) %>%
   group_by(page_name) %>%
   summarise(
-    total_mentions = sum(total_mentions),        #Total count of city mentions for each candidate
-    unique_mentions = n(),                       #Number of unique cities mentioned for each candidate
+    total_mentions = sum(total_mentions), #Total count of city mentions for each candidate
+    unique_mentions = n(),  #Number of unique cities mentioned for each candidate
     cities_mentioned = list(unique(mentioned_cities))   #A list of city names mentioned by each candidate
   )
 
@@ -364,21 +358,21 @@ muni_mentions_analysis_ads_combined <- full_join(muni_mentions_analysis_ads, mun
   ) %>%
   select(page_name, total_mentions, unique_mentions, cities_mentioned)
 ```
-**What is the average number of unique city mentions by a candidate?**
+
+# **RQ: Do congressional candidates target municipalities in a way that is consistent with their claims to scatter in the corners of the nation?**
+
+## **What is the average number of unique city mentions by a candidate?**
+
 ```{r}
-
 mean(muni_mentions_analysis_ads_combined$unique_mentions, na.rm = TRUE)
-
 median(muni_mentions_analysis_ads_combined$unique_mentions, na.rm = TRUE)
-
 sd(muni_mentions_analysis_ads_combined$unique_mentions, na.rm = TRUE)
 ```
 **What is the average number of city mentions by a candidate?**
+
 ```{r}
 mean(muni_mentions_analysis_ads_combined$total_mentions, na.rm = TRUE)
-
 median(muni_mentions_analysis_ads_combined$total_mentions, na.rm = TRUE)
-
 sd(muni_mentions_analysis_ads_combined$total_mentions, na.rm = TRUE)
 ```
 **Adding Census Data**
@@ -392,7 +386,6 @@ IBGE_ads <- replace(IBGE_ads, is.na(IBGE_ads), 0)
 sum(IBGE_ads$n <10, na.rm=TRUE)
 ```
 ### Correlations
-
 ```{r}
 CorrelationIDHM_ads <- cor.test(IBGE_ads$n, IBGE_ads$GINI, 
                     method = "pearson")
@@ -400,11 +393,11 @@ CorrelationPopulation_ads <- cor.test(IBGE_ads$n, IBGE_ads$Population,
                     method = "pearson")
 CorrelationPIB_ads <- cor.test(IBGE_ads$n, IBGE_ads$PIB_per_capita, 
                            method = "pearson")
-
 CorrelationPopulation_ads
 CorrelationIDHM_ads
 CorrelationPIB_ads
 ```
+
 ```{r}
 hist(IBGE_ads$n, 
      breaks = 100,  
@@ -427,7 +420,7 @@ df_ads_combined$NM_MUNICIPIO_NASCIMENTO <- tolower(df_ads_combined$NM_MUNICIPIO_
 IBGE_ads$Candidate_Born <- ifelse(IBGE_ads$name_muni %in% df_ads_combined$NM_MUNICIPIO_NASCIMENTO, 1, 0)
 ```
 
-## Regressions
+## **Regressions**
 ```{r}
 IBGE_ads_log <- IBGE_ads
 IBGE_ads_log <- IBGE_ads_log %>%
@@ -438,7 +431,6 @@ IBGE_ads_log$Ads_Count <- log(IBGE_ads_log$Ads_Count + 1)
 IBGE_ads_log$Population <- log(IBGE_ads_log$Population + 1)
 IBGE_ads_log$Medium_Salary <- log(IBGE_ads_log$Medium_Salary +1)
 IBGE_ads_log$Demographic_Density <- log(IBGE_ads_log$Demographic_Density + 1)
-IBGE_ads_log$Candidate_Born <- log(IBGE_ads_log$Candidate_Born + 1)
 
 # hist(IBGE_ads_log$Ads_Count, 
 #      col = "skyblue",
@@ -449,7 +441,7 @@ IBGE_ads_log$Candidate_Born <- log(IBGE_ads_log$Candidate_Born + 1)
 ```
 
 ```{r}
-Model_ads_Geo <- lm(Ads_Count ~ Population + GINI + Medium_Salary + Demographic_Density + factor(Candidate_Born),
+Model_ads_Geo <- lm(Ads_Count ~ Population + GINI + Medium_Salary + Demographic_Density + as.factor(Candidate_Born),
                        data = IBGE_ads_log) 
 ```
 
@@ -465,9 +457,10 @@ print(vif_ads_geo)
 ```
 ```{r}
 summary(Model_ads_Geo)
-# tidymodel_geo_ads <- tidy(Model_ads_Geo)
+tidymodel_geo_ads <- tidy(Model_ads_Geo)
 ```
-### Geographical visual analysis
+
+## Geographical visual analysis
 Based on the number of times municipalities *mineiras* were mentioned in ads, we plotted an interactive choropleth map. The map allows the reader to hoover over the municipalities and see their names and the number of times they were mentioned.
 
 ```{r}
