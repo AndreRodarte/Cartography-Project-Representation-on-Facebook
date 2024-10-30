@@ -316,14 +316,20 @@ interactions_occupation %>%
 ```
 
 # **RQ2: Is the distribution of social media metrics of engagement among congressional candidates consistent with the normalization hypothesis?**
-
 We previously noted that 659 candidates did not have a public account on Facebook. Now, we will focus on the 349 candidates who had an account and that created at least one post during the campaign (i.e. had an active account)
 
 ```{r}
+# total_accounts <- 1018
 df_clean <- df %>%
   filter(!is.na(N_Posts)) 
-# N = 349 candidates had an account and  created at least one post during the campaign
+unique_page_names <- length(unique(df_clean$page_name))
+# Calculate the percentage of candidates with a social media account
+percentage_with_social_media <- (unique_page_names / total_accounts) * 100
+```
+349 candidates had an account and created at least one post during the campaign, representing 34% of our sample.
 
+
+```{r}
 table(df_clean$education) # A similar code was used to verify the number of candidates of different gender and race.
 ```
 
@@ -680,7 +686,7 @@ plot(ResidualsOutput)
 
 Based on this statistical test, we can conclude that online engagement proved to have a strong relationship with already belonging to Brazil's political class, and an even more significant relationship with campaign and Facebook expenses. These results indicate that Facebook does not level the playing field for candidates, as being an incumbent and having enough economic resources are determinant factors for a candidacy's visibility on that platform.
 
-# RQ3: Do congressional candidates target municipalities in a way that is consistent with their claims to scatter in the corners of the nation?
+# **RQ3: Do congressional candidates target municipalities in a way that is consistent with their claims to scatter in the corners of the nation?** 
 
 Here we are interested in which were the constituencies (geographically defined) parliamentarians reached out to the most and, conversely, what constituencies were left aside in this election.
 
@@ -1044,22 +1050,44 @@ custom_colors <- colorRampPalette(c("#D3D3D3", "black"))(n = 100)
 
 # Choropleth map
 MapBlack <- ggplot() +
-  geom_sf(data = IBGE, aes(fill = n, text = paste(name_muni, "population:", Population), geometry = geom), color = NA, size = .15) +
+  geom_sf(
+    data = IBGE, 
+    aes(
+      fill = n, 
+      text = paste0(name_muni, "<br>Population: ", Population, "<br>Mentions: ", n),  # Include mentions (n) in hover text
+      geometry = geom
+    ), 
+    color = NA, size = .15
+  ) +
   labs(title = "2022 Election: municipalities mentioned", size = 10) +
   guides(fill = guide_colourbar(title = "Mentions")) +
   theme_minimal() +
   theme(
-    axis.line = element_blank(), axis.text = element_blank(),
-    axis.ticks = element_blank(), axis.title = element_blank(),
-    panel.grid = element_blank()
+    text = element_text(family = "ebgaramond", face = "bold", size = 10),
+    axis.line = element_blank(), 
+    axis.text = element_blank(),
+    axis.ticks = element_blank(), 
+    axis.title = element_blank(),
+    panel.grid = element_blank(),
+    legend.title = element_text(family = "ebgaramond", face = "bold", size = 10),  # Color bar title
+    legend.text = element_text(family = "ebgaramond", size = 8)  # Color bar labels
   ) +
   scale_fill_gradientn(
     colours = custom_colors,
     limits = c(0, 2200)
   )
 
-InteractiveMapBlack <- ggplotly(MapBlack) %>%
-  layout(title = list(text = paste0("<B>2022 Election: municipalities mentioned</B>")))
+# Create the interactive map with hover text in EB Garamond
+InteractiveMapBlack <- ggplotly(MapBlack, tooltip = "text") %>%
+  layout(
+    title = list(
+      text = paste0("<B>2022 Election: municipalities mentioned</B>"),
+      font = list(family = "EB Garamond", size = 16)
+    ),
+    hoverlabel = list(
+      font = list(family = "EB Garamond", size = 12)
+    )
+  )
 
 InteractiveMapBlack
 ```

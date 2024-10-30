@@ -154,6 +154,9 @@ df_terms <- fb_ad_list[["ad"]] %>%
   distinct() %>%
   arrange(desc(ad_creation_time))
 #Our first dataset contains 31,098 ads. This dataset was uploaded to the folder "data".
+    # df_terms <- read_csv(
+    #   "../data/df_terms.csv"
+    # )
 
 #Combine by name
 df_ads <- df_terms %>%
@@ -175,7 +178,7 @@ head(df_ads, 20)
 ```
 
  
-**Add accounts that promoted ads but could not be found in Crowdtangle**
+**Accounts that promoted ads but could not be found in Crowdtangle**
 Next, we compared our ads dataset (df_ads) with the dataset we had created with organic posts (see "Cartografia2022Election.Rmd" to obtain the latter)
 
 ```{r}
@@ -212,11 +215,8 @@ for (i in 1:nrow(df_ads)) {
 df_similarity <- na.omit(similarity_info)
 
 #Check for different accounts
-differences_df <- setdiff(df$page_name, df_similarity$page_name)
-differences_df_clean <- setdiff(df_similarity$page_name, df$page_name)
-
-df_differences_df <- data.frame(page_name = differences_df, Indicator = "Only in df")
-df_differences_df_clean <- data.frame(page_name = differences_df_clean, Indicator = "Only in df_similarity")
+differences_df <- setdiff(df_similarity$page_name, df$page_name)
+differences_df <- data.frame(page_name = differences_df, Indicator = "Only in df")
  
 ```
 
@@ -249,7 +249,9 @@ df_terms_clean$page_name = stri_trans_general(str = df_terms_clean$page_name, id
 page_names_list <- unique(df_ads_combined$page_name)
 df_terms_filtered <- df_terms_clean %>%
   filter(page_name %in% page_names_list)
+
 accounts_with_ads <- length(unique(df_terms_filtered$page_name))
+accountsID_with_ads <- length(unique(df_terms_filtered$page_id))
 
 #Second, we need to check whether each element in the body variable contains any of the municipality names.
 ads_with_muni <- df_terms_filtered %>% 
@@ -258,8 +260,16 @@ ads_with_muni <- df_terms_filtered %>%
           )   
 # write.csv(df_terms_filtered, "df_terms_filtered.csv", row.names = FALSE)
 ```
+Percentage of candidates who ran adds (considering that there were 1,018 candidates in total)
+```{r}
+total_accounts <- 1018
+percentage_with_ads <- (accountsID_with_ads / total_accounts) * 100
+```
 
-*Results*: we identified 9,431 ads created by 228 accounts in our sample. 4,245 out of these total ads contained references to Minas Gerais municipalities.
+*Summary of results*: 
+We identified 9,431 ads created by 248 accounts in our sample (of which 228 had a unique name), which correspond to 24.37% of our sample. 
+
+4,245 out of these ads contained references to Minas Gerais municipalities.
 
 Next, we need to prepare the data for our analysis
 ```{r}
@@ -420,7 +430,9 @@ df_ads_combined$NM_MUNICIPIO_NASCIMENTO <- tolower(df_ads_combined$NM_MUNICIPIO_
 IBGE_ads$Candidate_Born <- ifelse(IBGE_ads$name_muni %in% df_ads_combined$NM_MUNICIPIO_NASCIMENTO, 1, 0)
 ```
 
-## **Regressions**
+## **Coefficients For Linear Regression Model Examining Relationships Between Municipalities’ Characteristics (Log Transformed) And The Number Of Times They Were Mentioned In Facebook Ads.**
+These are the regression models used for Table A2
+
 ```{r}
 IBGE_ads_log <- IBGE_ads
 IBGE_ads_log <- IBGE_ads_log %>%
@@ -457,8 +469,13 @@ print(vif_ads_geo)
 ```
 ```{r}
 summary(Model_ads_Geo)
-tidymodel_geo_ads <- tidy(Model_ads_Geo)
+tidymodel_geo_ads <- tidy(Model_ads_Geo) %>%
+  as_tibble() %>%  
+  mutate(across(where(is.numeric), ~ round(., 2)))
 ```
+*Summary of results*
+Our regression analysis tested whether which predictors were associated with mentions in social media ads (Table A2 in the Appendix), revealing that population (β = 0.44, p<0.001) and inequality (β = 2.82, p<0.001) were significantly related to our dependent variable.
+
 
 ## Geographical visual analysis
 Based on the number of times municipalities *mineiras* were mentioned in ads, we plotted an interactive choropleth map. The map allows the reader to hoover over the municipalities and see their names and the number of times they were mentioned.
